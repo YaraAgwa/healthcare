@@ -43,7 +43,7 @@ const auth = {
         try {
             const { userType, ...userData } = req.body;
             
-            // 1. التحقق من البيانات المطلوبة
+          
             if (!userData.email || !userData.password) {
                 return res.status(400).json({
                     status: 'error',
@@ -51,7 +51,7 @@ const auth = {
                 });
             }
 
-            // 2. اختيار النموذج المناسب
+          
             const Model = userType === 'doctor' ? Doctor : Patient;
 
          
@@ -145,9 +145,7 @@ const auth = {
 
                 return res.json({
                     status: 'success',
-                    token,
                     user: {
-                        id: user._id,
                         email: user.email,
                         firstName: user.firstName,
                         lastName: user.lastName,
@@ -245,31 +243,29 @@ const auth = {
 
     resetPassword: async (req, res) => {
         try {
-            const { email, userType } = req.body;
-            const newPassword = '147852';
+            const { phoneNumber, code, newPassword, userType } = req.body;
 
             console.log('\n=== PASSWORD RESET PROCESS ===');
-            console.log('Input:', { email, userType, newPassword });
+            console.log('Input:', { phoneNumber, code, userType });
+
+           
+            if (!phoneNumber || !code || !newPassword || !userType) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Phone number, verification code, new password and user type are required'
+                });
+            }
 
             const Model = userType === 'doctor' ? Doctor : Patient;
-
-            // 1. تشفير كلمة المرور
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(newPassword, salt);
             
-            console.log('Hashing details:', {
-                salt,
-                hashedPassword
+          
+            const user = await Model.findOne({ phoneNumber });
+            console.log('User search result:', {
+                phoneNumber,
+                userFound: !!user
             });
 
-            // 2. تحديث في قاعدة البيانات
-            const updatedUser = await Model.findOneAndUpdate(
-                { email },
-                { password: hashedPassword },
-                { new: true }
-            ).select('+password');
-
-            if (!updatedUser) {
+            if (!user) {
                 return res.status(404).json({
                     status: 'error',
                     message: 'User not found'
@@ -277,25 +273,19 @@ const auth = {
             }
 
             
-            console.log('Update verification:', {
-                email: updatedUser.email,
-                newStoredHash: updatedUser.password
-            });
- 
-            const testCompare = await bcrypt.compare(newPassword, updatedUser.password);
-            console.log('Test comparison:', {
-                password: newPassword,
-                hash: updatedUser.password,
-                matches: testCompare
-            });
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(newPassword, salt);
 
+          
+            user.password = hashedPassword;
+            await user.save();
+
+            const testCompare = await bcrypt.compare(newPassword, user.password);
+            
             return res.json({
                 status: 'success',
                 message: 'Password reset successfully',
-                verification: {
-                    testCompare,
-                    password: newPassword 
-                }
+               
             });
 
         } catch (error) {
