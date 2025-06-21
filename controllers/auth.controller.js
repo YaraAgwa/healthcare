@@ -1,8 +1,16 @@
+require('dotenv').config();
+
 const Patient = require('../models/patient.model');
 const Doctor = require('../models/doctor.model');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const verificationService = require('../services/verification.service');
+const twilio = require('twilio');
+const session = require('express-session');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const express = require('express');
+const router = express.Router();
 
 let verificationCodes = {};
 
@@ -37,6 +45,12 @@ const findUser = async (phoneNumber, userType) => {
     });
     return user;
 };
+
+const twilioClient = twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+);
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
 
 const auth = {
     register: async (req, res) => {
@@ -224,12 +238,11 @@ const auth = {
                 });
             }
 
-            const code = await verificationService.sendCode(phoneNumber, userType);
+            await verificationService.sendCode(phoneNumber, userType);
 
             return res.json({
                 status: 'success',
-                message: 'Verification code sent successfully',
-                code  
+                message: 'Verification code sent successfully'
             });
 
         } catch (error) {
@@ -306,7 +319,128 @@ const auth = {
                 }
             </script>
         `);
+    },
+
+    updateProfile: async (req, res) => {
+        try {
+            const { userType, userId, ...updateData } = req.body;
+            const Model = userType === 'doctor' ? Doctor : Patient;
+
+            delete updateData.email;
+            delete updateData.password;
+
+            const user = await Model.findByIdAndUpdate(
+                userId,
+                { $set: updateData },
+                { new: true }
+            );
+
+            if (!user) {
+                return res.status(404).json({
+                    status: 'error',
+                    message: 'User not found'
+                });
+            }
+
+            return res.json({
+                status: 'success',
+                message: 'Profile updated successfully',
+                user: {
+                    id: user._id,
+                    email: user.email,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    phoneNumber: user.phoneNumber,
+                    userType
+                }
+            });
+        } catch (error) {
+            console.error('Update profile error:', error);
+            return res.status(500).json({
+                status: 'error',
+                message: error.message
+            });
+        }
+    },
+
+    deleteAccount: async (req, res) => {
+        try {
+            const { userType, userId } = req.body;
+            const Model = userType === 'doctor' ? Doctor : Patient;
+
+            const user = await Model.findByIdAndDelete(userId);
+
+            if (!user) {
+                return res.status(404).json({
+                    status: 'error',
+                    message: 'User not found'
+                });
+            }
+
+            return res.json({
+                status: 'success',
+                message: 'Account deleted successfully'
+            });
+        } catch (error) {
+            console.error('Delete account error:', error);
+            return res.status(500).json({
+                status: 'error',
+                message: error.message
+            });
+        }
     }
 };
+
+// -- DEBUGGING GOOGLE OAUTH --
+console.log("--- Passport Strategy Values ---");
+console.log("CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
+console.log("CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET ? 'Loaded Successfully' : '!!! NOT LOADED !!!');
+console.log("CALLBACK_URL:", process.env.GOOGLE_CALLBACK_URL);
+console.log("------------------------------");
+
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: process.env.GOOGLE_CALLBACK_URL
+  },
+  async (accessToken, refreshToken, profile, done) => {
+    let user = await Doctor.findOne({ email: profile.emails[0].value });
+    if (!user) {
+      user = await Patient.findOne({ email: profile.emails[0].value });
+    }
+    if (!user) {
+      // يمكنكِ هنا إنشاء مستخدم جديد إذا أردتِ
+      return done(null, false, { message: 'No user found' });
+    }
+    return done(null, user);
+  }
+));
+
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  let user = await Doctor.findById(id) || await Patient.findById(id);
+  done(null, user);
+});
+
+// بدء تسجيل الدخول بجوجل
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+// كول باك بعد نجاح جوجل
+router.get('/google/callback',
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  (req, res) => {
+    // تسجيل الدخول ناجح
+    // يمكنكِ هنا إعادة توجيه المستخدم أو إرسال توكن JWT أو بيانات المستخدم
+    res.json({
+      status: 'success',
+      user: req.user
+    });
+  }
+);
+
+console.log('Google Client ID:', process.env.GOOGLE_CLIENT_ID);
 
 module.exports = auth; 

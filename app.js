@@ -19,6 +19,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
  
+
 const authRoutes = require('./routes/auth.routes');
 app.use('/api/auth', authRoutes);
 app.use('/api/doctors', require('./routes/doctor.routes'));

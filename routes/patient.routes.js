@@ -17,3 +17,4 @@ router.get('/profile/:id',    patientController.getProfile);
 router.put('/profile/:id',  patientController.updateProfile);
 
 module.exports = router;
+  
