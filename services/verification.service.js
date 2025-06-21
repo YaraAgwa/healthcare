@@ -1,87 +1,66 @@
 const Doctor = require('../models/doctor.model');
 const Patient = require('../models/patient.model');
- 
+const twilio = require('twilio');
+
+const twilioClient = twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+);
+const VERIFY_SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID;
 
 class VerificationService {
     async sendCode(phoneNumber, userType) {
         try {
-            console.log('\n=== GENERATING CODE ===');
+            console.log('\n=== SENDING CODE VIA TWILIO VERIFY ===');
             console.log('For:', { phoneNumber, userType });
 
-         
+            // تأكد أن المستخدم موجود
             const Model = userType === 'doctor' ? Doctor : Patient;
             const user = await Model.findOne({ phoneNumber });
-
             if (!user) {
-                console.log('No user found');
                 throw new Error('User not found');
             }
 
-         
-            const code = Math.floor(100000 + Math.random() * 900000).toString();
-            
-           
-            await Model.findByIdAndUpdate(user._id, {
-                verificationCode: code,
-                verificationCodeExpires: new Date(Date.now() + 5 * 60 * 1000)
-            });
+            // إرسال الكود عبر Twilio Verify
+            await twilioClient.verify.v2.services(VERIFY_SERVICE_SID)
+                .verifications
+                .create({ to: phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`, channel: 'sms' });
 
-            console.log('\n**************************');
-            console.log('* NEW CODE GENERATED');
-            console.log('* Code:', code);
-            console.log('* Phone:', phoneNumber);
-            console.log('* Type:', userType);
-            console.log('**************************\n');
-
-            return code;
+            return true;
         } catch (error) {
-            console.error('Error generating code:', error);
+            console.error('Error sending code via Twilio Verify:', error);
             throw error;
         }
     }
 
     async verifyCode(phoneNumber, code) {
         try {
-            console.log('\n=== VERIFYING CODE ===');
+            console.log('\n=== VERIFYING CODE VIA TWILIO VERIFY ===');
             console.log('Input:', { phoneNumber, code });
 
-         
-            let user = await Doctor.findOne({ phoneNumber });
-            if (!user) {
-                user = await Patient.findOne({ phoneNumber });
-            }
+            const verificationCheck = await twilioClient.verify.v2.services(VERIFY_SERVICE_SID)
+                .verificationChecks
+                .create({ to: phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`, code });
 
-            console.log('User found:', !!user);
-            if (user) {
-                console.log('Stored code:', user.verificationCode);
-                console.log('Received code:', code);
-                console.log('Match:', user.verificationCode === code);
-            }
-
-            if (!user || user.verificationCode !== code) {
+            if (verificationCheck.status === 'approved') {
+                return {
+                    isValid: true,
+                    message: 'Code verified successfully'
+                };
+            } else {
                 return {
                     isValid: false,
-                    message: 'Invalid verification code'
+                    message: 'Invalid or expired verification code'
                 };
             }
-
-            if (user.verificationCodeExpires < Date.now()) {
-                return {
-                    isValid: false,
-                    message: 'Code has expired'
-                };
-            }
-
-            return {
-                isValid: true,
-                message: 'Code verified successfully',
-                userType: user.constructor.modelName.toLowerCase()
-            };
         } catch (error) {
-            console.error('Error verifying code:', error);
-            throw error;
+            console.error('Error verifying code via Twilio Verify:', error);
+            return {
+                isValid: false,
+                message: 'Verification failed'
+            };
         }
     }
 }
 
-module.exports = new VerificationService(); 
+module.exports = new VerificationService();
