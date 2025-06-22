@@ -105,7 +105,7 @@ exports.updateProfile = async (req, res) => {
 
 // Add rating and update average rating
 exports.addRating = async (req, res) => {
-    try {
+    try { 
        
         const { doctorId, rating, comment, userId } = req.body;
 
