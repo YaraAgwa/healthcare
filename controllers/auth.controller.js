@@ -401,56 +401,6 @@ const auth = {
     }
 };
 
-// -- DEBUGGING GOOGLE OAUTH --
-console.log("--- Passport Strategy Values ---");
-console.log("CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
-console.log("CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET ? 'Loaded Successfully' : '!!! NOT LOADED !!!');
-console.log("CALLBACK_URL:", process.env.GOOGLE_CALLBACK_URL);
-console.log("------------------------------");
-
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL
-  },
-  async (accessToken, refreshToken, profile, done) => {
-    let user = await Doctor.findOne({ email: profile.emails[0].value });
-    if (!user) {
-      user = await Patient.findOne({ email: profile.emails[0].value });
-    }
-    if (!user) {
-      // يمكنكِ هنا إنشاء مستخدم جديد إذا أردتِ
-      return done(null, false, { message: 'No user found' });
-    }
-    return done(null, user);
-  }
-));
-
-passport.serializeUser((user, done) => {
-  done(null, user.id);
-});
-
-passport.deserializeUser(async (id, done) => {
-  let user = await Doctor.findById(id) || await Patient.findById(id);
-  done(null, user);
-});
-
-// بدء تسجيل الدخول بجوجل
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-// كول باك بعد نجاح جوجل
-router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  (req, res) => {
-    // تسجيل الدخول ناجح
-    // يمكنكِ هنا إعادة توجيه المستخدم أو إرسال توكن JWT أو بيانات المستخدم
-    res.json({
-      status: 'success',
-      user: req.user
-    });
-  }
-);
-
-console.log('Google Client ID:', process.env.GOOGLE_CLIENT_ID);
+ 
 
 module.exports = auth; 
