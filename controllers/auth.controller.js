@@ -269,6 +269,15 @@ const auth = {
                 });
             }
 
+            const verificationResult = await verificationService.verifyCode(phoneNumber, code);
+
+            if (!verificationResult.isValid) {
+                return res.status(400).json({
+                    status: 'error',
+                    message:'Invalid verification code'
+                });
+            }
+
             const Model = userType === 'doctor' ? Doctor : Patient;
             
           
