@@ -238,11 +238,16 @@ const auth = {
                 });
             }
 
-            await verificationService.sendCode(phoneNumber, userType);
+            // إنشاء كود تحقق عشوائي (مثلاً 6 أرقام)
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+            // حفظ الكود في الذاكرة مع رقم الهاتف
+            verificationCodes[phoneNumber] = code;
 
             return res.json({
                 status: 'success',
-                message: 'Verification code sent successfully'
+                message: 'Verification code generated successfully',
+                code // إرسال الكود في الـ response
             });
 
         } catch (error) {
@@ -269,18 +274,16 @@ const auth = {
                 });
             }
 
-            const verificationResult = await verificationService.verifyCode(phoneNumber, code);
-
-            if (!verificationResult.isValid) {
+            // تحقق من الكود المخزن
+            if (verificationCodes[phoneNumber] !== code) {
                 return res.status(400).json({
                     status: 'error',
-                    message:'Invalid verification code'
+                    message: 'Invalid verification code'
                 });
             }
 
             const Model = userType === 'doctor' ? Doctor : Patient;
             
-          
             const user = await Model.findOne({ phoneNumber });
             console.log('User search result:', {
                 phoneNumber,
@@ -294,20 +297,18 @@ const auth = {
                 });
             }
 
-            
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-          
             user.password = hashedPassword;
             await user.save();
 
-            const testCompare = await bcrypt.compare(newPassword, user.password);
-            
+            // احذف الكود بعد الاستخدام (اختياري)
+            delete verificationCodes[phoneNumber];
+
             return res.json({
                 status: 'success',
                 message: 'Password reset successfully',
-               
             });
 
         } catch (error) {
