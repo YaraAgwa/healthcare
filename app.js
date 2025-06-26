@@ -24,6 +24,15 @@ const authRoutes = require('./routes/auth.routes');
 app.use('/api/auth', authRoutes);
 app.use('/api/doctors', require('./routes/doctor.routes'));
 app.use('/api/patients', require('./routes/patient.routes'));
+const appointmentRoutes = require('./routes/appointment.routes');
+app.use('/api/appointments', appointmentRoutes);
+const notificationRoutes = require('./routes/notification.routes');
+app.use('/api/notifications', notificationRoutes);
+const paymentRoutes = require('./routes/payment.routes');
+app.use('/api/payments', paymentRoutes);
+const messageRoutes = require('./routes/message.routes');
+app.use('/api/messages', messageRoutes);
+app.use('/uploads', express.static('uploads'));
 
  
 app.get('/', (req, res) => {

@@ -142,3 +142,20 @@ exports.getDoctorRating = async (req, res) => {
         res.status(500).json({ status: "error", message: error.message });
     }
 };
+
+// Update doctor's available slots
+exports.setAvailableSlots = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { availableSlots } = req.body; // [{date: '2024-06-01', times: ['09:00', '10:00']}, ...]
+        const doctor = await Doctor.findByIdAndUpdate(
+            id,
+            { availableSlots },
+            { new: true }
+        );
+        if (!doctor) return res.status(404).json({ status: 'error', message: 'Doctor not found' });
+        res.json({ status: 'success', message: 'Available slots updated', data: doctor.availableSlots });
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: error.message });
+    }
+};

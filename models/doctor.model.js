@@ -21,7 +21,13 @@ const doctorSchema = new mongoose.Schema({
         ],
         default: []
     },
-    averageRating: { type: String, default: "0.00" }
+    averageRating: { type: String, default: "0.00" },
+    availableSlots: [
+        {
+            date: { type: String, required: true }, // YYYY-MM-DD
+            times: [String] // قائمة الأوقات المتاحة في هذا اليوم (مثلاً: ["09:00", "10:00"])
+        }
+    ]
 }, {
     timestamps: true
 });
