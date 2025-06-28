@@ -7,12 +7,7 @@ const notificationService = require('../services/notification.service');
 // Book an appointment
 exports.bookAppointment = async (req, res) => {
     try {
-        console.log('=== DEBUG INFO ===');
-        console.log('Headers:', req.headers);
-        console.log('Body:', req.body);
-        console.log('Body type:', typeof req.body);
-        console.log('Body keys:', Object.keys(req.body));
-        console.log('==================');
+       
         
         const { doctorId, patientId, date, time } = req.body;
         console.log('BODY:', req.body);
