@@ -17,13 +17,27 @@ exports.createPayment = async (req, res) => {
         });
         await payment.save();
         // إرسال إشعار للمريض
-        await notificationService.createNotification(patientId, 'Patient', 'تم تسجيل عملية دفع جديدة');
+        await notificationService.createNotification(patientId, 'Patient', 'A new payment has been recorded');
         // إذا كان الدفع مرتبط بموعد، أرسل إشعار للطبيب
         if (appointmentId) {
             const Appointment = require('../models/appointment.model');
             const appointment = await Appointment.findById(appointmentId);
             if (appointment && appointment.doctorId) {
-                await notificationService.createNotification(appointment.doctorId, 'Doctor', 'تم تسجيل عملية دفع لموعدك');
+                // Check if amount matches doctor's consultation fee
+                const Doctor = require('../models/doctor.model');
+                const doctor = await Doctor.findById(appointment.doctorId);
+                if (!doctor) {
+                    return res.status(404).json({ status: 'error', message: 'Doctor not found' });
+                }
+                if (typeof doctor.price === 'number' && amount !== doctor.price) {
+                    return res.status(400).json({ status: 'error', message: 'You must pay the exact price.' });
+                }
+                await notificationService.createNotification(appointment.doctorId, 'Doctor', 'A payment has been recorded for your appointment');
+                // Update doctor's balance
+                await Doctor.findByIdAndUpdate(
+                    appointment.doctorId,
+                    { $inc: { balance: amount } }
+                );
             }
         }
         res.json({ status: 'success', message: 'Payment recorded' });

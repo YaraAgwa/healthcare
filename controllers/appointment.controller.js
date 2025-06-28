@@ -34,8 +34,8 @@ exports.bookAppointment = async (req, res) => {
         });
         await appointment.save();
         // Create notifications
-        await notificationService.createNotification(patientId, 'Patient', 'تم حجز موعد جديد');
-        await notificationService.createNotification(doctorId, 'Doctor', 'تم حجز موعد جديد');
+        await notificationService.createNotification(patientId, 'Patient', 'A new appointment has been booked');
+        await notificationService.createNotification(doctorId, 'Doctor', 'A new appointment has been booked');
         res.json({ status: 'success', message: 'Appointment booked'});
     } catch (error) {
         res.status(500).json({ status: 'error', message: error.message });
@@ -83,12 +83,12 @@ exports.cancelAppointment = async (req, res) => {
         await Notification.create({
             userId: new mongoose.Types.ObjectId(appointment.doctorId),
             userType: 'Doctor',
-            message: `تم إلغاء موعد في ${appointment.date} الساعة ${appointment.time}`
+            message: `An appointment on ${appointment.date} at ${appointment.time} has been cancelled`
         });
         await Notification.create({
             userId: new mongoose.Types.ObjectId(appointment.patientId),
             userType: 'Patient',
-            message: `تم إلغاء موعدك مع الدكتور في ${appointment.date} الساعة ${appointment.time}`
+            message: `Your appointment with the doctor on ${appointment.date} at ${appointment.time} has been cancelled`
         });
         res.json({ status: 'success', message: 'Appointment cancelled'});
     } catch (error) {

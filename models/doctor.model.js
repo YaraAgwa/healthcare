@@ -29,7 +29,9 @@ const doctorSchema = new mongoose.Schema({
         }
     ],
     
-    price: { type: Number }
+    price: { type: Number },
+    consultationFee: { type: Number },
+    balance: { type: Number, default: 0 }
 }, {
     timestamps: true
 });

@@ -1,7 +1,7 @@
 const Message = require('../models/message.model');
 const path = require('path');
 
-// إرسال رسالة (نصية أو مع ملف)
+// Send a message (text or with file)
 exports.sendMessage = async (req, res) => {
     try {
         const { senderId, receiverId, senderType, receiverType, content } = req.body;
@@ -21,16 +21,16 @@ exports.sendMessage = async (req, res) => {
             fileType
         });
         await message.save();
-        // إرسال إشعار للطرف المستقبل
+        // Send notification to the receiver
         const notificationService = require('../services/notification.service');
-        await notificationService.createNotification(receiverId, receiverType, 'لديك رسالة جديدة');
+        await notificationService.createNotification(receiverId, receiverType, 'You have a new message');
         res.json({ status: 'success', });
     } catch (error) {
         res.status(500).json({ status: 'error', message: error.message });
     }
 };
 
-// جلب كل الرسائل بين طرفين
+// Get all messages between two parties
 exports.getConversation = async (req, res) => {
     try {
         const { user1, user2 } = req.query;
@@ -41,7 +41,7 @@ exports.getConversation = async (req, res) => {
             ]
         }).sort({ createdAt: 1 });
 
-        // استخراج محتوى الرسالة أو اسم الملف فقط
+        // Extract message content or file name only
         const contents = messages.map(msg => msg.content ? msg.content : (msg.fileUrl ? msg.fileUrl : null)).filter(Boolean);
 
         res.json({ status: 'success', data: contents });
