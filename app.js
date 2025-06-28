@@ -28,8 +28,6 @@ const appointmentRoutes = require('./routes/appointment.routes');
 app.use('/api/appointments', appointmentRoutes);
 const notificationRoutes = require('./routes/notification.routes');
 app.use('/api/notifications', notificationRoutes);
-const paymentRoutes = require('./routes/payment.routes');
-app.use('/api/payments', paymentRoutes);
 const messageRoutes = require('./routes/message.routes');
 app.use('/api/messages', messageRoutes);
 app.use('/uploads', express.static('uploads'));

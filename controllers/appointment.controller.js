@@ -33,9 +33,14 @@ exports.bookAppointment = async (req, res) => {
             time
         });
         await appointment.save();
+        // Increase doctor's balance
+        await Doctor.findByIdAndUpdate(
+            doctorId,
+            { $inc: { balance: doctor.price } }
+        );
         // Create notifications
         await notificationService.createNotification(patientId, 'Patient', 'A new appointment has been booked');
-        await notificationService.createNotification(doctorId, 'Doctor', 'A new appointment has been booked');
+        await notificationService.createNotification(doctorId, 'Doctor', 'A new appointment has been booked. Your balance has been increased.');
         res.json({ status: 'success', message: 'Appointment booked'});
     } catch (error) {
         res.status(500).json({ status: 'error', message: error.message });
