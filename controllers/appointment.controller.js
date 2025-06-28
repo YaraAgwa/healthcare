@@ -7,9 +7,7 @@ const notificationService = require('../services/notification.service');
 // Book an appointment
 exports.bookAppointment = async (req, res) => {
     try {
-       
-        
-        const { doctorId, patientId, date, time } = req.body;
+        const { doctorId, patientId, date, time, paymentMethod, cardNumber, expiryDate, cvv, cardHolder } = req.body;
         console.log('BODY:', req.body);
         // Check if doctor has this slot available
         const doctor = await Doctor.findById(doctorId);
@@ -20,22 +18,43 @@ exports.bookAppointment = async (req, res) => {
         // Prevent double booking
         const exists = await Appointment.findOne({ doctorId, date, time, status: 'booked' });
         if (exists) return res.status(400).json({ status: 'error', message: 'This slot is already booked' });
+        
+        // Validate payment method and card details
+        if (paymentMethod === 'visa') {
+            if (!cardNumber || !expiryDate || !cvv || !cardHolder) {
+                return res.status(400).json({ status: 'error', message: 'Card details are required for visa payment' });
+            }
+        }
+        
         // Book
         const appointment = new Appointment({
             doctorId: new mongoose.Types.ObjectId(doctorId),
             patientId: new mongoose.Types.ObjectId(patientId),
             date,
-            time
+            time,
+            paymentMethod,
+            cardNumber,
+            expiryDate,
+            cvv,
+            cardHolder
         });
         await appointment.save();
-        // Increase doctor's balance
-        await Doctor.findByIdAndUpdate(
-            doctorId,
-            { $inc: { balance: doctor.price } }
-        );
+        
+        // Handle payment based on method
+        if (paymentMethod === 'visa') {
+            // Increase doctor's balance for visa payment
+            await Doctor.findByIdAndUpdate(
+                doctorId,
+                { $inc: { balance: doctor.price } }
+            );
+            await notificationService.createNotification(doctorId, 'Doctor', 'A new appointment has been booked with visa payment. Your balance has been increased.');
+        } else {
+            // Cash payment - no balance change
+            await notificationService.createNotification(doctorId, 'Doctor', 'A new appointment has been booked with cash payment.');
+        }
+        
         // Create notifications
         await notificationService.createNotification(patientId, 'Patient', 'A new appointment has been booked');
-        await notificationService.createNotification(doctorId, 'Doctor', 'A new appointment has been booked. Your balance has been increased.');
         res.json({ status: 'success', message: 'Appointment booked'});
     } catch (error) {
         res.status(500).json({ status: 'error', message: error.message });

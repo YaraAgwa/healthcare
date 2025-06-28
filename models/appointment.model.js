@@ -23,6 +23,27 @@ const appointmentSchema = new mongoose.Schema({
         type: String,
         enum: ['booked', 'cancelled'],
         default: 'booked'
+    },
+    paymentMethod: {
+        type: String,
+        enum: ['cash', 'visa'],
+        required: true
+    },
+    cardNumber: {
+        type: String,
+        required: function() { return this.paymentMethod === 'visa'; }
+    },
+    expiryDate: {
+        type: String,
+        required: function() { return this.paymentMethod === 'visa'; }
+    },
+    cvv: {
+        type: String,
+        required: function() { return this.paymentMethod === 'visa'; }
+    },
+    cardHolder: {
+        type: String,
+        required: function() { return this.paymentMethod === 'visa'; }
     }
 }, { timestamps: true }
 );
