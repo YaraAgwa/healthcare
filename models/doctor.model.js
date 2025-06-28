@@ -27,7 +27,9 @@ const doctorSchema = new mongoose.Schema({
             date: { type: String, required: true }, // YYYY-MM-DD
             times: [String] // قائمة الأوقات المتاحة في هذا اليوم (مثلاً: ["09:00", "10:00"])
         }
-    ]
+    ],
+    
+    price: { type: Number }
 }, {
     timestamps: true
 });
