@@ -160,6 +160,7 @@ const auth = {
                 return res.json({
                     status: 'success',
                     user: {
+                        id: user._id,
                         email: user.email,
                         firstName: user.firstName,
                         lastName: user.lastName,
