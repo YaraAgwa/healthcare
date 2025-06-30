@@ -14,4 +14,7 @@ router.put('/profile/:id', doctorController.updateProfile);
 router.put('/:id/available-slots', doctorController.setAvailableSlots);
 
 
+
+
+
 module.exports = router;
