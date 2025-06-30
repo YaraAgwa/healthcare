@@ -124,7 +124,7 @@ exports.addRating = async (req, res) => {
         
         await doctor.save();
 
-        res.json({ status: 'success', message: 'Rating added successfully', data: doctor });
+        res.json({ status: 'success', message: 'Rating added successfully' });
     } catch (error) {
         res.status(500).json({ status: 'error', message: error.message });
     }

@@ -1,26 +1,23 @@
 const Message = require('../models/message.model');
-const path = require('path');
+ 
+const mongoose = require('mongoose');
 
-// Send a message (text or with file)
+// Send a message  
 exports.sendMessage = async (req, res) => {
     try {
         const { senderId, receiverId, senderType, receiverType, content } = req.body;
-        let fileUrl = null;
-        let fileType = null;
-        if (req.file) {
-            fileUrl = `/uploads/${req.file.filename}`;
-            fileType = req.file.mimetype;
-        }
+        
         const message = new Message({
             senderId,
             receiverId,
             senderType,
             receiverType,
             content,
-            fileUrl,
-            fileType
+            
         });
+        console.log('Saving message:', { senderId, receiverId });
         await message.save();
+        console.log('Saved message:', message);
         // Send notification to the receiver
         const notificationService = require('../services/notification.service');
         await notificationService.createNotification(receiverId, receiverType, 'You have a new message');
@@ -34,15 +31,27 @@ exports.sendMessage = async (req, res) => {
 exports.getConversation = async (req, res) => {
     try {
         const { user1, user2 } = req.query;
+        console.log('Querying conversation:', { user1, user2 });
+        let user1Id, user2Id;
+        try {
+            user1Id = new mongoose.Types.ObjectId(user1);
+            user2Id = new mongoose.Types.ObjectId(user2);
+        } catch (e) {
+            return res.status(400).json({ status: 'error', message: 'Invalid user id(s) provided.' });
+        }
         const messages = await Message.find({
             $or: [
-                { senderId: user1, receiverId: user2 },
-                { senderId: user2, receiverId: user1 }
+                { senderId: user1Id, receiverId: user2Id },
+                { senderId: user2Id, receiverId: user1Id }
             ]
         }).sort({ createdAt: 1 });
 
-        // Extract message content or file name only
-        const contents = messages.map(msg => msg.content ? msg.content : (msg.fileUrl ? msg.fileUrl : null)).filter(Boolean);
+        // Extract message content only
+        const contents = messages.map(msg => msg.content).filter(Boolean);
+
+        // Keep debug log if needed
+        // const allMessages = await Message.find({});
+        // console.log('All messages:', allMessages);
 
         res.json({ status: 'success', data: contents });
     } catch (error) {
