@@ -17,12 +17,11 @@ exports.sendMessage = async (req, res) => {
         });
         console.log('Saving message:', { senderId, receiverId });
         await message.save();
-        console.log('Saved message:', message);
+        
         // Send notification to the receiver
         const notificationService = require('../services/notification.service');
         await notificationService.createNotification(receiverId, receiverType, 'You have a new message');
-        const { _id, createdAt, updatedAt, __v, ...filteredData } = message.toObject();
-        res.json({ status: 'success', data: filteredData });
+        res.json({ status: 'success' });
     } catch (error) {
         res.status(500).json({ status: 'error', message: error.message });
     }
@@ -32,7 +31,7 @@ exports.sendMessage = async (req, res) => {
 exports.getConversation = async (req, res) => {
     try {
         const { user1, user2 } = req.query;
-        console.log('Querying conversation:', { user1, user2 });
+       
         let user1Id, user2Id;
         try {
             user1Id = new mongoose.Types.ObjectId(user1);
@@ -48,14 +47,22 @@ exports.getConversation = async (req, res) => {
         }).sort({ createdAt: 1 });
 
          
-        const filteredMessages = messages.map(msg => ({
+        const conversationId = [user1, user2].sort().join('_');
+        const messagesArr = messages.map(msg => ({
             senderId: msg.senderId,
             receiverId: msg.receiverId,
             senderType: msg.senderType,
             receiverType: msg.receiverType,
-            content: msg.content
+            content: msg.content,
+            timestamp: msg.createdAt
         }));
-        res.json({ status: 'success', data: filteredMessages });
+        res.json({
+            status: 'success',
+            data: {
+                conversationId,
+                messages: messagesArr
+            }
+        });
     } catch (error) {
         res.status(500).json({ status: 'error', message: error.message });
     }
