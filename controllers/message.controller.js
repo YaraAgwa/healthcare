@@ -21,7 +21,8 @@ exports.sendMessage = async (req, res) => {
         // Send notification to the receiver
         const notificationService = require('../services/notification.service');
         await notificationService.createNotification(receiverId, receiverType, 'You have a new message');
-        res.json({ status: 'success', });
+        const { _id, createdAt, updatedAt, __v, ...filteredData } = message.toObject();
+        res.json({ status: 'success', data: filteredData });
     } catch (error) {
         res.status(500).json({ status: 'error', message: error.message });
     }

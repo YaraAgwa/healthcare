@@ -4,6 +4,7 @@ const notificationController = require('../controllers/notification.controller')
 
  
 router.get('/:userId', notificationController.getNotifications);
+router.delete('/:id', notificationController.deleteNotification); 
 
  
 
