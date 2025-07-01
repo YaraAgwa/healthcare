@@ -47,14 +47,15 @@ exports.getConversation = async (req, res) => {
             ]
         }).sort({ createdAt: 1 });
 
-        // Extract message content only
-        const contents = messages.map(msg => msg.content).filter(Boolean);
-
-        // Keep debug log if needed
-        // const allMessages = await Message.find({});
-        // console.log('All messages:', allMessages);
-
-        res.json({ status: 'success', data: contents });
+         
+        const filteredMessages = messages.map(msg => ({
+            senderId: msg.senderId,
+            receiverId: msg.receiverId,
+            senderType: msg.senderType,
+            receiverType: msg.receiverType,
+            content: msg.content
+        }));
+        res.json({ status: 'success', data: filteredMessages });
     } catch (error) {
         res.status(500).json({ status: 'error', message: error.message });
     }
